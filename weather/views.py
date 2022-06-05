@@ -4,46 +4,94 @@ from django.conf import settings
 from django.http import HttpResponse
 from .forms import CoordinateForm
 from django.contrib import messages
+from django.views.generic import ListView
 
-def home(request):
-    weatherdata = {}
-    if request.method == "GET":        
+class WeatherData():
+    place = ""
+    temp = 0.0
+    rain = 0
+    message = ""
+
+    def getRain(self):
+        return self.rain
+
+    def getMaxTemp(self):
+        return self.temp
+
+    def getPlace(self):
+        return self.place
+    
+    def getMessage(self):
+        return self.message
+
+    def setWeatherData(self, place, temp, rain):
+        self.place = place
+        self.temp = temp
+        self.rain = rain
+    
+    def setMessage(self, message):
+        self.message = message
+
+
+
+class Converter(ListView):
+    fullJsonData = {}
+
+    # Function to call Meteoserver api with longitude and latitude values, save response and messages
+    def getDataFromExternal(self, longitude, latitude):
+        # Define endpoint
+        endpoint = 'https://data.meteoserver.nl/api/liveweer_synop.php?lat={latitude}&long={longitude}&key={key}'
+        # Fill in latitude, longitude and private api key
+        url = endpoint.format(latitude=latitude, longitude=longitude, key=settings.METEO_APP_KEY)
+        # Get response
+        response = requests.get(url)
+        # Check for response statuscodes 200 and 400.
+        if response.status_code == 200:
+            try:
+                # Convert to json
+                self.fullJsonData = response.json()
+                # Set message to empty
+                self.fullJsonData["message"] = ""
+                # Check if api key error is present in fullJsonData, if so, set as message
+                if "api_key_invalid" in self.fullJsonData:
+                    self.fullJsonData["message"] = self.fullJsonData["api_key_invalid"]
+            except: #Errno Expecting value
+                self.fullJsonData = {}
+                self.fullJsonData["message"] = "Check input parameters"
+        elif response.status_code == 400:
+            self.fullJsonData["message"] =  "Check input parameters"
+        
+    # Function to save data derived from getDataFromExternal to WeatherData class
+    def convert(self, weatherdata):
+        # Save message to weatherdata message
+        weatherdata.setMessage(self.fullJsonData["message"])
+        # Check if there was no message
+        if len(weatherdata.getMessage()) == 0:
+            weatherdata.setWeatherData(self.fullJsonData["liveweer"][0]["plaats"], self.fullJsonData["liveweer"][0]["temp_24"], self.fullJsonData["liveweer"][0]["regen_24"])
+
+
+def index(request):
+    # Initialize Converter and WeatherData classes
+    converter = Converter()
+    weatherdata = WeatherData()
+
+    if request.method == "GET":       
+        # Get coordinate_form and check if form values are valid
         coordinate_form = CoordinateForm(request.GET)
-
         if coordinate_form.is_valid():
+            # Get longitude and latitude values from coordinate form
             longitude = coordinate_form.cleaned_data["longitude"]
             latitude = coordinate_form.cleaned_data["latitude"]
-
-            endpoint = 'https://data.meteoserver.nl/api/liveweer_synop.php?lat={latitude}&long={longitude}&key={key}'
-            # Fill in lat, long and private key
-            url = endpoint.format(latitude=latitude, longitude=longitude, key=settings.METEO_APP_KEY)
-            # Get response
-            response = requests.get(url)            
-            if response.status_code == 200:
-                try:
-                    # Convert to json
-                    weatherdata = response.json()
-                except: #Errno Expecting value
-                    weatherdata["message"] = "bad input parameter"
-                print("weatherdata", weatherdata)
-                weatherdata['success'] = True
-            else:
-                weatherdata['success'] = False
-
-                if response.status_code == 400:
-                    weatherdata["message"] = "bad input parameter"
-                else:
-                    weatherdata["message"] = "some error"
-
-            weatherdata["longitude"] = longitude
-            weatherdata["latitude"] = latitude
-
+            # Call getDataFromExternal with variables longitude and latitude
+            converter.getDataFromExternal(longitude, latitude)
+            # Save outcome to weatherdata
+            converter.convert(weatherdata)
 
     # Return variables to weather_base html
     return render(request, "weather/weather_base.html", {
-        "coordinate_form":coordinate_form, "weatherdata": weatherdata
+        "coordinate_form":coordinate_form, 
+        "place":weatherdata.getPlace(), 
+        "max_temp":weatherdata.getMaxTemp(), 
+        "rain":weatherdata.getRain(), 
+        "message":weatherdata.getMessage()
         })
-
-
-
-

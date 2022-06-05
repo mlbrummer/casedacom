@@ -1,10 +1,5 @@
 
 {% extends 'base.html' %}
- 
-{% block title %}
-    {{ title }}
-{% endblock title %}
-
 
 {% block content %}
     <h1>Live weather API</h1>
@@ -15,22 +10,17 @@
         {{ coordinate_form.as_p }}
         <input type="submit" value="Submit">
     </form>
-
-    {% for message in messages %}
-        <p>{{message}}</p>
-    {% endfor %}  
       
-    {% if weatherdata %}
-        {% if weatherdata.success %}
+    {% if message %}
+        {{message}}
+    {% else %}
         <p>
-            Live weather in <strong>{{weatherdata.liveweer.0.plaats}}</strong><br>
+            Location: <strong>{{place}}</strong><br>
             {{ weatherdata.liveweer.0.time }}
         </p>
-        <p>Max temp: <strong>{{weatherdata.liveweer.0.temp_24}} C</strong> (last 24 hours)</p>
-        <p>Amount of rain: <strong>{{weatherdata.liveweer.0.regen_24}} mm</strong> (last 24 hours)</p>
-        {% else %}
-        <p>{{weatherdata.message}}</p>
-        {% endif %}
+        <p>Max temp: <strong>{{max_temp}} C</strong> (last 24 hours)</p>
+        <p>Amount of rain: <strong>{{rain}} mm</strong> (last 24 hours)</p>
     {% endif %}
+
  
 {% endblock content %}
