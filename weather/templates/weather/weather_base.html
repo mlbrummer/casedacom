@@ -8,22 +8,29 @@
 
 {% block content %}
     <h1>Live weather API</h1>
-    <h1>{{ title }}</h1>
 
     <p>Please fill in some coordinates:</p>
-    <form method="get">
-        <label>Longitude:</label></labek><input type="float" name="longitude"><br>
-        <label>Latitude:</label><input type="float" name="latitude"><br>
-        <button type="submit">Search coordinates</button>
-      </form>
+    <form action="" method="get">
+        {% csrf_token %}
+        {{ coordinate_form.as_p }}
+        <input type="submit" value="Submit">
+    </form>
 
+    {% for message in messages %}
+        <p>{{message}}</p>
+    {% endfor %}  
+      
     {% if weatherdata %}
+        {% if weatherdata.success %}
         <p>
-            Live weather in <strong>{{weatherdata.liveweer.0.plaats}}</strong> (long: {{longitude}}, lat: {{latitude}})<br>
+            Live weather in <strong>{{weatherdata.liveweer.0.plaats}}</strong><br>
             {{ weatherdata.liveweer.0.time }}
         </p>
         <p>Max temp: <strong>{{weatherdata.liveweer.0.temp_24}} C</strong> (last 24 hours)</p>
         <p>Amount of rain: <strong>{{weatherdata.liveweer.0.regen_24}} mm</strong> (last 24 hours)</p>
+        {% else %}
+        <p>{{weatherdata.message}}</p>
+        {% endif %}
     {% endif %}
  
 {% endblock content %}
