@@ -4,22 +4,24 @@
 {% block content %}
     <h1>Live weather API</h1>
 
-    <p>Please fill in some coordinates:</p>
-    <form action="" method="get">
+    <!--Coordinates form-->
+    <p>Please fill in some coordinates (located in the Netherlands):</p>
+    <form action="" method="post">
         {% csrf_token %}
         {{ coordinate_form.as_p }}
         <input type="submit" value="Submit">
     </form>
       
+    <!--Check if there were messages that need to be showed, if not, show results-->
     {% if message %}
         {{message}}
     {% else %}
-        <p>
-            Location: <strong>{{place}}</strong><br>
-            {{ weatherdata.liveweer.0.time }}
-        </p>
-        <p>Max temp: <strong>{{max_temp}} C</strong> (last 24 hours)</p>
-        <p>Amount of rain: <strong>{{rain}} mm</strong> (last 24 hours)</p>
+        <!--Check if coordinates are filled in,-->
+        {% if coordinates %}
+            <p>Location: <strong>{{place}}</strong></p>
+            <p>Max temp: <strong>{{max_temp}} C</strong> (last 24 hours)</p>
+            <p>Amount of rain: <strong>{{rain}} mm</strong> (last 24 hours)</p>
+        {% endif %}
     {% endif %}
 
  
